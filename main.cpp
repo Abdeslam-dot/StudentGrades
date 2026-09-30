@@ -1,5 +1,7 @@
 #include <iostream>
 #include <iomanip>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -13,16 +15,23 @@ private:
     string surname;
     vector<double> hw;   // homework results
     double exam;
-    double finalGrade;
+    double finalAvg;
+    double finalMed;
 
 public:
     // Default constructor
-    Person() : name(""), surname(""), exam(0), finalGrade(0) {}
+    Person() : name(""), surname(""), exam(0), finalAvg(0), finalMed(0) {}
+
+    // Constructor with values
+    Person(const string& n, const string& s, const vector<double>& h, double e)
+        : name(n), surname(s), hw(h), exam(e), finalAvg(0), finalMed(0) {
+        calculateFinal();
+    }
 
     // Copy constructor
     Person(const Person& other)
         : name(other.name), surname(other.surname), hw(other.hw),
-          exam(other.exam), finalGrade(other.finalGrade) {}
+          exam(other.exam), finalAvg(other.finalAvg), finalMed(other.finalMed) {}
 
     // Copy assignment operator
     Person& operator=(const Person& other) {
@@ -31,7 +40,8 @@ public:
         surname = other.surname;
         hw = other.hw;
         exam = other.exam;
-        finalGrade = other.finalGrade;
+        finalAvg = other.finalAvg;
+        finalMed = other.finalMed;
         return *this;
     }
 
@@ -39,6 +49,11 @@ public:
     ~Person() {
         hw.clear();
     }
+
+    string getName() const { return name; }
+    string getSurname() const { return surname; }
+    double getFinalAvg() const { return finalAvg; }
+    double getFinalMed() const { return finalMed; }
 
     double average() const {
         if (hw.empty()) return 0;
@@ -56,10 +71,10 @@ public:
         return tmp[n / 2];
     }
 
-    // useMedian = true -> median, false -> average
-    void calculateFinal(bool useMedian) {
-        double hwPart = useMedian ? median() : average();
-        finalGrade = 0.4 * hwPart + 0.6 * exam;
+    // Calculates both final grades (by average and by median)
+    void calculateFinal() {
+        finalAvg = 0.4 * average() + 0.6 * exam;
+        finalMed = 0.4 * median() + 0.6 * exam;
     }
 
     // Fill homework and exam with random scores (1-10)
@@ -69,6 +84,7 @@ public:
         hw.clear();
         for (int i = 0; i < hwCount; i++) hw.push_back(dist(gen));
         exam = dist(gen);
+        calculateFinal();
     }
 
     void setName(const string& n, const string& s) {
@@ -99,17 +115,66 @@ public:
 
         cout << "Exam result: ";
         in >> p.exam;
+        p.calculateFinal();
         return in;
     }
 
-    // Output
+    // Output: name, surname, final (avg) | final (med)
     friend ostream& operator<<(ostream& out, const Person& p) {
-        out << left << setw(12) << p.name
+        out << left << setw(15) << p.name
             << setw(15) << p.surname
-            << right << setw(18) << fixed << setprecision(2) << p.finalGrade;
+            << right << fixed << setprecision(2)
+            << setw(14) << p.finalAvg << " |"
+            << setw(13) << p.finalMed;
         return out;
     }
 };
+
+// Reads students from a file. First line is the header.
+// Each line: Name Surname HW1 HW2 ... HWn Exam
+bool readFromFile(const string& fileName, vector<Person>& students) {
+    ifstream file(fileName);
+    if (!file) {
+        cout << "Could not open file: " << fileName << "\n";
+        return false;
+    }
+
+    string line;
+    getline(file, line); // skip header
+
+    while (getline(file, line)) {
+        if (line.empty()) continue;
+        istringstream ss(line);
+        string name, surname;
+        ss >> name >> surname;
+
+        vector<double> values;
+        double x;
+        while (ss >> x) values.push_back(x);
+        if (values.empty()) continue;
+
+        double exam = values.back();   // last number is the exam
+        values.pop_back();             // the rest are homework
+        students.push_back(Person(name, surname, values, exam));
+    }
+    return true;
+}
+
+void printTable(vector<Person>& students) {
+    // Sort by name, then by surname
+    sort(students.begin(), students.end(), [](const Person& a, const Person& b) {
+        if (a.getName() == b.getName()) return a.getSurname() < b.getSurname();
+        return a.getName() < b.getName();
+    });
+
+    cout << "\n" << left << setw(15) << "Name"
+         << setw(15) << "Surname"
+         << right << setw(14) << "Final (Avg.)" << " |"
+         << setw(13) << "Final (Med.)" << "\n";
+    cout << string(58, '-') << "\n";
+
+    for (const Person& s : students) cout << s << "\n";
+}
 
 int main() {
     vector<Person> students;
@@ -117,47 +182,41 @@ int main() {
     int mode;
     cout << "1 - Enter data manually\n";
     cout << "2 - Generate random scores\n";
+    cout << "3 - Read data from file\n";
     cout << "Choose: ";
     cin >> mode;
 
-    int n;
-    cout << "How many students? ";
-    cin >> n;
+    if (mode == 3) {
+        string fileName;
+        cout << "File name (e.g. Students.txt): ";
+        cin >> fileName;
+        if (!readFromFile(fileName, students)) return 1;
+    } else {
+        int n;
+        cout << "How many students? ";
+        cin >> n;
 
-    for (int i = 0; i < n; i++) {
-        Person p;
-        cout << "\n--- Student " << i + 1 << " ---\n";
-        if (mode == 2) {
-            string name, surname;
-            int hwCount;
-            cout << "First name: ";
-            cin >> name;
-            cout << "Surname: ";
-            cin >> surname;
-            cout << "Number of homework results to generate: ";
-            cin >> hwCount;
-            p.setName(name, surname);
-            p.generateRandom(hwCount);
-        } else {
-            cin >> p;
+        for (int i = 0; i < n; i++) {
+            Person p;
+            cout << "\n--- Student " << i + 1 << " ---\n";
+            if (mode == 2) {
+                string name, surname;
+                int hwCount;
+                cout << "First name: ";
+                cin >> name;
+                cout << "Surname: ";
+                cin >> surname;
+                cout << "Number of homework results to generate: ";
+                cin >> hwCount;
+                p.setName(name, surname);
+                p.generateRandom(hwCount);
+            } else {
+                cin >> p;
+            }
+            students.push_back(p);
         }
-        students.push_back(p);
     }
 
-    char choice;
-    cout << "\nCalculate final grade by (A)verage or (M)edian? ";
-    cin >> choice;
-    bool useMedian = (choice == 'M' || choice == 'm');
-
-    for (Person& s : students) s.calculateFinal(useMedian);
-
-    string title = useMedian ? "Final_Point(Med.)" : "Final_Point(Aver.)";
-    cout << "\n" << left << setw(12) << "Name"
-         << setw(15) << "Surname"
-         << right << setw(18) << title << "\n";
-    cout << string(45, '-') << "\n";
-
-    for (const Person& s : students) cout << s << "\n";
-
+    printTable(students);
     return 0;
 }
