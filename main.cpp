@@ -7,24 +7,38 @@
 
 #include "Person.h"
 #include "StudentFiles.h"
+#include "Timer.h"
 
 using namespace std;
 
 const vector<int> TEST_SIZES = {1000, 10000, 100000, 1000000, 10000000};
 
-// Read -> sort -> split -> write two new files
-void processFile(const string& fileName) {
+// Read -> sort -> split -> write two new files, measuring every step
+void speedTest(const string& fileName) {
+    cout << "\n=== " << fileName << " ===\n" << fixed << setprecision(4);
+    Timer total, t;
+
     vector<Person> students;
     readFromFile(fileName, students);
-    sortByFinal(students);
+    cout << "Reading " << students.size() << " records: " << t.elapsed() << " s\n";
 
+    t.reset();
+    sortByFinal(students);
+    cout << "Sorting:                 " << t.elapsed() << " s\n";
+
+    t.reset();
     vector<Person> failed, passed;
     splitStudents(students, failed, passed);
+    cout << "Splitting in two:        " << t.elapsed() << " s"
+         << "  (failed: " << failed.size() << ", passed: " << passed.size() << ")\n";
 
+    t.reset();
     string base = fileName.substr(0, fileName.rfind('.'));
     writeToFile(base + "_failed.txt", failed);
     writeToFile(base + "_passed.txt", passed);
-    cout << fileName << ": " << failed.size() << " failed, " << passed.size() << " passed\n";
+    cout << "Writing two files:       " << t.elapsed() << " s\n";
+
+    cout << "Total time:              " << total.elapsed() << " s\n";
 }
 
 int main() {
@@ -36,15 +50,16 @@ int main() {
         cout << "2 - Generate random scores\n";
         cout << "3 - Read data from file\n";
         cout << "4 - Generate test files (1 000 ... 10 000 000 students)\n";
-        cout << "5 - Split test files into failed / passed files\n";
+        cout << "5 - Speed analysis (read, sort, split, write) on test files\n";
         cout << "Choose: ";
         if (!(cin >> mode) || mode < 1 || mode > 5) throw invalid_argument("Choose a number from 1 to 5");
 
         if (mode == 4) {
             for (int n : TEST_SIZES) {
                 string name = "students" + to_string(n) + ".txt";
+                Timer t;
                 generateFile(name, n);
-                cout << "Generated " << name << "\n";
+                cout << "Generated " << name << " in " << fixed << setprecision(4) << t.elapsed() << " s\n";
             }
             return 0;
         }
@@ -52,7 +67,7 @@ int main() {
         if (mode == 5) {
             for (int n : TEST_SIZES) {
                 try {
-                    processFile("students" + to_string(n) + ".txt");
+                    speedTest("students" + to_string(n) + ".txt");
                 } catch (const runtime_error& e) {   // e.g. file does not exist
                     cout << "Error: " << e.what() << " (generate it with option 4)\n";
                 }
