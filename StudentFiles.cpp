@@ -1,13 +1,5 @@
 #include "StudentFiles.h"
 
-#include <algorithm>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <stdexcept>
-
 using namespace std;
 
 void generateFile(const string& fileName, int count) {
@@ -30,65 +22,4 @@ void generateFile(const string& fileName, int count) {
         if (i % 100000 == 0) { file << buf.str(); buf.str(""); }
     }
     file << buf.str();
-}
-
-void readFromFile(const string& fileName, vector<Person>& students) {
-    ifstream file(fileName);
-    if (!file) throw runtime_error("Could not open file: " + fileName);
-
-    string line;
-    getline(file, line); // skip header
-
-    while (getline(file, line)) {
-        if (line.empty() || line == "\r") continue;
-        students.push_back(Person::fromLine(line));
-    }
-}
-
-void sortByFinal(vector<Person>& students) {
-    sort(students.begin(), students.end(), [](const Person& a, const Person& b) {
-        return a.getFinalAvg() > b.getFinalAvg();
-    });
-}
-
-void sortByName(vector<Person>& students) {
-    sort(students.begin(), students.end(), [](const Person& a, const Person& b) {
-        if (a.getName() == b.getName()) return a.getSurname() < b.getSurname();
-        return a.getName() < b.getName();
-    });
-}
-
-void splitStudents(const vector<Person>& students, vector<Person>& failed, vector<Person>& passed) {
-    for (const Person& s : students) {
-        if (s.getFinalAvg() < PASS_MARK) failed.push_back(s);
-        else passed.push_back(s);
-    }
-}
-
-void writeToFile(const string& fileName, const vector<Person>& students) {
-    ofstream file(fileName);
-    if (!file) throw runtime_error("Could not create file: " + fileName);
-
-    ostringstream buf;
-    buf << left << setw(15) << "Name" << setw(15) << "Surname"
-        << right << setw(14) << "Final (Avg.)" << " |" << setw(13) << "Final (Med.)" << "\n"
-        << string(58, '-') << "\n";
-    int i = 0;
-    for (const Person& s : students) {
-        buf << s << "\n";
-        if (++i % 100000 == 0) { file << buf.str(); buf.str(""); }
-    }
-    file << buf.str();
-}
-
-void printTable(vector<Person>& students) {
-    sortByName(students);
-
-    cout << "\n" << left << setw(15) << "Name"
-         << setw(15) << "Surname"
-         << right << setw(14) << "Final (Avg.)" << " |"
-         << setw(13) << "Final (Med.)" << "\n";
-    cout << string(58, '-') << "\n";
-
-    for (const Person& s : students) cout << s << "\n";
 }

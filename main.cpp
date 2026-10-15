@@ -13,27 +13,29 @@ using namespace std;
 
 const vector<int> TEST_SIZES = {1000, 10000, 100000, 1000000, 10000000};
 
-// Read -> sort -> split -> write two new files, measuring every step
-void speedTest(const string& fileName) {
-    cout << "\n=== " << fileName << " ===\n" << fixed << setprecision(4);
+// Read -> sort -> split -> write two new files, measuring every step,
+// for one container type
+template <typename Container>
+void speedTest(const string& fileName, const string& containerName) {
+    cout << "\n=== " << fileName << " [" << containerName << "] ===\n" << fixed << setprecision(4);
     Timer total, t;
 
-    vector<Person> students;
+    Container students;
     readFromFile(fileName, students);
     cout << "Reading " << students.size() << " records: " << t.elapsed() << " s\n";
 
     t.reset();
-    sortByFinal(students);
+    sortStudents(students, byFinal);
     cout << "Sorting:                 " << t.elapsed() << " s\n";
 
     t.reset();
-    vector<Person> failed, passed;
+    Container failed, passed;
     splitStudents(students, failed, passed);
     cout << "Splitting in two:        " << t.elapsed() << " s"
          << "  (failed: " << failed.size() << ", passed: " << passed.size() << ")\n";
 
     t.reset();
-    string base = fileName.substr(0, fileName.rfind('.'));
+    string base = fileName.substr(0, fileName.rfind('.')) + "_" + containerName;
     writeToFile(base + "_failed.txt", failed);
     writeToFile(base + "_passed.txt", passed);
     cout << "Writing two files:       " << t.elapsed() << " s\n";
@@ -66,8 +68,9 @@ int main() {
 
         if (mode == 5) {
             for (int n : TEST_SIZES) {
+                string fileName = "students" + to_string(n) + ".txt";
                 try {
-                    speedTest("students" + to_string(n) + ".txt");
+                    speedTest<vector<Person>>(fileName, "vector");
                 } catch (const runtime_error& e) {   // e.g. file does not exist
                     cout << "Error: " << e.what() << " (generate it with option 4)\n";
                 }
