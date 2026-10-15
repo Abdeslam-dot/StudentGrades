@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <iomanip>
 #include <random>
+#include <sstream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -38,14 +40,14 @@ Person::~Person() {
 }
 
 double Person::average() const {
-    if (hw.empty()) return 0;
+    if (hw.empty()) throw domain_error("No homework results for " + name + " " + surname);
     double sum = 0;
     for (double x : hw) sum += x;
     return sum / hw.size();
 }
 
 double Person::median() const {
-    if (hw.empty()) return 0;
+    if (hw.empty()) throw domain_error("No homework results for " + name + " " + surname);
     vector<double> tmp = hw;
     sort(tmp.begin(), tmp.end());
     size_t n = tmp.size();
@@ -59,6 +61,7 @@ void Person::calculateFinal() {
 }
 
 void Person::generateRandom(int hwCount) {
+    if (hwCount <= 0) throw invalid_argument("Number of homework results must be positive");
     static mt19937 gen(random_device{}());
     uniform_int_distribution<int> dist(1, 10);
     hw.clear();
@@ -72,6 +75,26 @@ void Person::setName(const string& n, const string& s) {
     surname = s;
 }
 
+Person Person::fromLine(const string& line) {
+    istringstream ss(line);
+    string name, surname;
+    if (!(ss >> name >> surname))
+        throw invalid_argument("Bad line (missing name/surname): " + line);
+
+    vector<double> values;
+    double x;
+    while (ss >> x) {
+        if (x < 0 || x > 10) throw out_of_range("Grade not in 0-10 range: " + line);
+        values.push_back(x);
+    }
+    if (values.size() < 2)
+        throw invalid_argument("Bad line (need homework and exam): " + line);
+
+    double exam = values.back();   // last number is the exam
+    values.pop_back();             // the rest are homework
+    return Person(name, surname, values, exam);
+}
+
 istream& operator>>(istream& in, Person& p) {
     cout << "First name: ";
     in >> p.name;
@@ -83,7 +106,7 @@ istream& operator>>(istream& in, Person& p) {
     double x;
     while (true) {
         cout << "Homework " << p.hw.size() + 1 << ": ";
-        in >> x;
+        if (!(in >> x)) throw invalid_argument("Homework result must be a number");
         if (x == -1) break;
         if (x < 0 || x > 10) {
             cout << "Result must be between 0 and 10.\n";
@@ -93,8 +116,9 @@ istream& operator>>(istream& in, Person& p) {
     }
 
     cout << "Exam result: ";
-    in >> p.exam;
-    p.calculateFinal();
+    if (!(in >> p.exam)) throw invalid_argument("Exam result must be a number");
+    if (p.exam < 0 || p.exam > 10) throw out_of_range("Exam result must be between 0 and 10");
+    p.calculateFinal();   // throws if no homework was entered
     return in;
 }
 

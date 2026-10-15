@@ -5,43 +5,32 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 
 using namespace std;
 
-bool readFromFile(const string& fileName, vector<Person>& students) {
+void readFromFile(const string& fileName, vector<Person>& students) {
     ifstream file(fileName);
-    if (!file) {
-        cout << "Could not open file: " << fileName << "\n";
-        return false;
-    }
+    if (!file) throw runtime_error("Could not open file: " + fileName);
 
     string line;
     getline(file, line); // skip header
 
     while (getline(file, line)) {
-        if (line.empty()) continue;
-        istringstream ss(line);
-        string name, surname;
-        ss >> name >> surname;
-
-        vector<double> values;
-        double x;
-        while (ss >> x) values.push_back(x);
-        if (values.empty()) continue;
-
-        double exam = values.back();   // last number is the exam
-        values.pop_back();             // the rest are homework
-        students.push_back(Person(name, surname, values, exam));
+        if (line.empty() || line == "\r") continue;
+        students.push_back(Person::fromLine(line));
     }
-    return true;
 }
 
-void printTable(vector<Person>& students) {
-    // Sort by name, then by surname
+void sortByName(vector<Person>& students) {
     sort(students.begin(), students.end(), [](const Person& a, const Person& b) {
         if (a.getName() == b.getName()) return a.getSurname() < b.getSurname();
         return a.getName() < b.getName();
     });
+}
+
+void printTable(vector<Person>& students) {
+    sortByName(students);
 
     cout << "\n" << left << setw(15) << "Name"
          << setw(15) << "Surname"

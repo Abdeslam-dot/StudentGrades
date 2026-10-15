@@ -28,6 +28,7 @@ public:
     double getFinalAvg() const { return finalAvg; }
     double getFinalMed() const { return finalMed; }
 
+    // Throw std::domain_error if there are no homework results
     double average() const;
     double median() const;
 
@@ -38,6 +39,10 @@ public:
     void generateRandom(int hwCount);
 
     void setName(const std::string& n, const std::string& s);
+
+    // Builds a Person from one file line: Name Surname HW1 ... HWn Exam
+    // Throws std::invalid_argument / std::out_of_range on bad data
+    static Person fromLine(const std::string& line);
 
     // Input: homework results until the user types -1
     friend std::istream& operator>>(std::istream& in, Person& p);
