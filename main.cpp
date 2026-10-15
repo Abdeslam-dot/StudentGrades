@@ -1,4 +1,5 @@
 #include <exception>
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -9,6 +10,8 @@
 
 using namespace std;
 
+const vector<int> TEST_SIZES = {1000, 10000, 100000, 1000000, 10000000};
+
 int main() {
     try {
         vector<Person> students;
@@ -17,8 +20,18 @@ int main() {
         cout << "1 - Enter data manually\n";
         cout << "2 - Generate random scores\n";
         cout << "3 - Read data from file\n";
+        cout << "4 - Generate test files (1 000 ... 10 000 000 students)\n";
         cout << "Choose: ";
-        if (!(cin >> mode) || mode < 1 || mode > 3) throw invalid_argument("Choose a number from 1 to 3");
+        if (!(cin >> mode) || mode < 1 || mode > 4) throw invalid_argument("Choose a number from 1 to 4");
+
+        if (mode == 4) {
+            for (int n : TEST_SIZES) {
+                string name = "students" + to_string(n) + ".txt";
+                generateFile(name, n);
+                cout << "Generated " << name << "\n";
+            }
+            return 0;
+        }
 
         if (mode == 3) {
             string fileName;
