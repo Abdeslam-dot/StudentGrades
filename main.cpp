@@ -12,6 +12,21 @@ using namespace std;
 
 const vector<int> TEST_SIZES = {1000, 10000, 100000, 1000000, 10000000};
 
+// Read -> sort -> split -> write two new files
+void processFile(const string& fileName) {
+    vector<Person> students;
+    readFromFile(fileName, students);
+    sortByFinal(students);
+
+    vector<Person> failed, passed;
+    splitStudents(students, failed, passed);
+
+    string base = fileName.substr(0, fileName.rfind('.'));
+    writeToFile(base + "_failed.txt", failed);
+    writeToFile(base + "_passed.txt", passed);
+    cout << fileName << ": " << failed.size() << " failed, " << passed.size() << " passed\n";
+}
+
 int main() {
     try {
         vector<Person> students;
@@ -21,14 +36,26 @@ int main() {
         cout << "2 - Generate random scores\n";
         cout << "3 - Read data from file\n";
         cout << "4 - Generate test files (1 000 ... 10 000 000 students)\n";
+        cout << "5 - Split test files into failed / passed files\n";
         cout << "Choose: ";
-        if (!(cin >> mode) || mode < 1 || mode > 4) throw invalid_argument("Choose a number from 1 to 4");
+        if (!(cin >> mode) || mode < 1 || mode > 5) throw invalid_argument("Choose a number from 1 to 5");
 
         if (mode == 4) {
             for (int n : TEST_SIZES) {
                 string name = "students" + to_string(n) + ".txt";
                 generateFile(name, n);
                 cout << "Generated " << name << "\n";
+            }
+            return 0;
+        }
+
+        if (mode == 5) {
+            for (int n : TEST_SIZES) {
+                try {
+                    processFile("students" + to_string(n) + ".txt");
+                } catch (const runtime_error& e) {   // e.g. file does not exist
+                    cout << "Error: " << e.what() << " (generate it with option 4)\n";
+                }
             }
             return 0;
         }
