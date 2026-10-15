@@ -47,20 +47,62 @@ Menu:
 4. **Generate test files**: `students1000.txt` … `students10000000.txt`, named `Name1 Surname1`, `Name2 Surname2`, …, with 10 homework and 1 exam each
 5. **Speed analysis**: read → sort by final points → split into **failed** (< 5.0) and **passed** (≥ 5.0) → write `..._failed.txt` and `..._passed.txt`, timing every step
 
-## Speed analysis — v0.2 (`std::vector`)
+## v0.25: `std::vector` vs `std::list` vs `std::deque`
+
+The file functions in `StudentFiles.h` are templates, so the same code works with all three containers. Option 5 asks which container to test.
+
+`std::list` has no random-access iterators, so it uses `list::sort()`. `std::vector` and `std::deque` use `std::sort`.
 
 Test PC: Linux, 2 vCPU, g++ 13 `-O2`. Times are in seconds.
 
-| Records | Read | Sort | Split | Write 2 files | **Total** |
-|---:|---:|---:|---:|---:|---:|
-| 1 000 | 0.0021 | 0.0002 | 0.0002 | 0.0008 | **0.0033** |
-| 10 000 | 0.0255 | 0.0041 | 0.0025 | 0.0059 | **0.0380** |
-| 100 000 | 0.3204 | 0.0632 | 0.0280 | 0.0557 | **0.4673** |
-| 1 000 000 | 2.5176 | 0.9693 | 0.4274 | 0.6157 | **4.5301** |
-| 10 000 000 | 28.5089 | 9.7847 | 3.0467 | 5.3214 | **46.6617** |
+### Reading from file
+| Records | vector | list | deque |
+|---:|---:|---:|---:|
+| 1 000 | 0.0026 | 0.0026 | 0.0026 |
+| 10 000 | 0.0285 | 0.0216 | 0.0202 |
+| 100 000 | 0.4522 | 0.3063 | 0.3308 |
+| 1 000 000 | 3.0584 | 2.2596 | 2.6442 |
+| 10 000 000 | 26.9038 | 26.6543 | 29.9347 |
+
+### Sorting
+| Records | vector | list | deque |
+|---:|---:|---:|---:|
+| 1 000 | 0.0003 | 0.0001 | 0.0010 |
+| 10 000 | 0.0037 | 0.0026 | 0.0040 |
+| 100 000 | 0.0958 | 0.0732 | 0.0699 |
+| 1 000 000 | 0.8792 | 1.3816 | 1.0615 |
+| 10 000 000 | 9.6344 | 19.0773 | 11.2997 |
+
+### Splitting into failed / passed
+| Records | vector | list | deque |
+|---:|---:|---:|---:|
+| 1 000 | 0.0002 | 0.0002 | 0.0001 |
+| 10 000 | 0.0022 | 0.0037 | 0.0006 |
+| 100 000 | 0.0355 | 0.0511 | 0.0166 |
+| 1 000 000 | 0.3316 | 0.5289 | 0.2169 |
+| 10 000 000 | 3.0962 | 5.0272 | 1.9055 |
+
+### Writing two files
+| Records | vector | list | deque |
+|---:|---:|---:|---:|
+| 1 000 | 0.0008 | 0.0007 | 0.0006 |
+| 10 000 | 0.0054 | 0.0052 | 0.0077 |
+| 100 000 | 0.0622 | 0.0935 | 0.1013 |
+| 1 000 000 | 0.5871 | 0.7925 | 0.9178 |
+| 10 000 000 | 4.8886 | 6.1886 | 6.1170 |
+
+### Total
+| Records | vector | list | deque |
+|---:|---:|---:|---:|
+| 1 000 | 0.0038 | 0.0036 | 0.0044 |
+| 10 000 | 0.0399 | 0.0331 | 0.0326 |
+| 100 000 | 0.6458 | 0.5242 | 0.5187 |
+| 1 000 000 | 4.8563 | 4.9627 | 4.8406 |
+| 10 000 000 | **44.5230** | **56.9474** | **49.2571** |
 
 **Conclusions:**
-- Time grows almost linearly with the number of students.
-- Reading the file is the slowest step (about 60 % of the total), because every line has to be parsed.
-- Sorting comes second and grows a bit faster than linearly (O(n log n)).
-- Splitting and writing are comparatively cheap.
+- Up to 100 000 students, the container makes almost no difference.
+- **Reading:** the time is dominated by parsing the file, so all three containers are similar.
+- **Sorting:** `list` is about 2× slower than `vector` on 10 M records. Its elements are scattered in memory, which uses the CPU cache poorly. `vector` is the fastest because its memory is contiguous.
+- **Splitting:** `deque` is the fastest because `push_back` never moves existing elements. `vector` sometimes reallocates and copies everything. `list` allocates a node for every student.
+- **Overall:** `vector` was the fastest on the biggest file and is the best general choice. `list` was clearly the slowest for this task.
