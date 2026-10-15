@@ -1,6 +1,8 @@
+#include <deque>
 #include <exception>
 #include <iomanip>
 #include <iostream>
+#include <list>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -14,7 +16,7 @@ using namespace std;
 const vector<int> TEST_SIZES = {1000, 10000, 100000, 1000000, 10000000};
 
 // Read -> sort -> split -> write two new files, measuring every step,
-// for one container type
+// for one container type (vector, list or deque)
 template <typename Container>
 void speedTest(const string& fileName, const string& containerName) {
     cout << "\n=== " << fileName << " [" << containerName << "] ===\n" << fixed << setprecision(4);
@@ -67,10 +69,16 @@ int main() {
         }
 
         if (mode == 5) {
+            int c;
+            cout << "Container: 1 - vector, 2 - list, 3 - deque, 4 - all three\nChoose: ";
+            if (!(cin >> c) || c < 1 || c > 4) throw invalid_argument("Choose a number from 1 to 4");
+
             for (int n : TEST_SIZES) {
                 string fileName = "students" + to_string(n) + ".txt";
                 try {
-                    speedTest<vector<Person>>(fileName, "vector");
+                    if (c == 1 || c == 4) speedTest<vector<Person>>(fileName, "vector");
+                    if (c == 2 || c == 4) speedTest<list<Person>>(fileName, "list");
+                    if (c == 3 || c == 4) speedTest<deque<Person>>(fileName, "deque");
                 } catch (const runtime_error& e) {   // e.g. file does not exist
                     cout << "Error: " << e.what() << " (generate it with option 4)\n";
                 }
